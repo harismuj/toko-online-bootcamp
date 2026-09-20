@@ -1,4 +1,3 @@
-```markdown
 # 🛒 TokoKita API & Dashboard Store
 
 Aplikasi Toko Online sederhana yang mengintegrasikan **RESTful API** berbasis **Python Flask**, basis data **SQLite**, dan antarmuka **Frontend Interaktif** (HTML/CSS/JS + Tailwind CSS) untuk mengelola katalog produk, stok, serta simulasi transaksi penjualan.
@@ -173,8 +172,6 @@ CREATE TABLE IF NOT EXISTS transaksi (
     tanggal TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (produk_id) REFERENCES produk (id)
 );
-
-```
 
 ```
 
