@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aplikasi Toko Online - Frontend Admin & Kasir</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome for Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts: Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .active-tab {
+      border-bottom: 2px solid #3b82f6;
+      color: #3b82f6;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+  <!-- Top Navigation Bar -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16 items-center">
+        <!-- Logo -->
+        <div class="flex items-center space-x-3">
+          <div class="bg-blue-600 text-white p-2 rounded-lg flex items-center justify-center shadow-md">
+            <i class="fa-solid fa-store text-xl"></i>
+          </div>
+          <div>
+            <h1 class="text-lg font-bold text-slate-900 leading-tight">TokoKita API</h1>
+            <p class="text-xs text-slate-500">Aplikasi Toko Online & Management</p>
+          </div>
+        </div>
+
+        <!-- API Mode Switcher -->
+        <div class="flex items-center space-x-3 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+          <span class="text-xs font-medium text-slate-600 pl-2 hidden sm:inline">Mode Data:</span>
+          <button id="btn-mode-mock" onclick="setApiMode('mock')" class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all shadow-sm bg-white text-blue-600">
+            <i class="fa-solid fa-database mr-1"></i> Mock Data
+          </button>
+          <button id="btn-mode-flask" onclick="setApiMode('flask')" class="px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition-all">
+            <i class="fa-solid fa-server mr-1"></i> Flask API
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <nav class="bg-white border-t border-slate-100 px-4 sm:px-6 lg:px-8">
+      <div class="max-w-7xl mx-auto flex space-x-8 text-sm">
+        <button onclick="switchTab('katalog')" id="tab-katalog" class="py-3 px-1 active-tab flex items-center space-x-2 transition-all">
+          <i class="fa-solid fa-shop"></i>
+          <span>Katalog Produk</span>
+        </button>
+        <button onclick="switchTab('crud')" id="tab-crud" class="py-3 px-1 text-slate-500 hover:text-slate-700 flex items-center space-x-2 transition-all">
+          <i class="fa-solid fa-boxes-stacked"></i>
+          <span>Kelola Produk (CRUD)</span>
+        </button>
+        <button onclick="switchTab('transaksi')" id="tab-transaksi" class="py-3 px-1 text-slate-500 hover:text-slate-700 flex items-center space-x-2 transition-all">
+          <i class="fa-solid fa-receipt"></i>
+          <span>Riwayat Transaksi</span>
+        </button>
+      </div>
+    </nav>
+  </header>
+
+  <!-- Notification Toast Container -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+  <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- Status Bar Component -->
+    <div id="status-banner" class="mb-6 p-4 rounded-xl border bg-blue-50 border-blue-200 text-blue-800 text-xs sm:text-sm flex items-center justify-between">
+      <div class="flex items-center space-x-2">
+        <span class="relative flex h-3 w-3">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
+        </span>
+        <span id="status-text">Menggunakan <b>LocalStorage (Mock Data)</b>. Perubahan disimpan secara lokal di browser.</span>
+      </div>
+      <span id="api-url-badge" class="bg-blue-100 text-blue-700 font-mono text-xs px-2 py-1 rounded hidden">http://127.0.0.1:5000</span>
+    </div>
+
+    <!-- TAB 1: KATALOG PRODUK & TRANSAKSI -->
+    <section id="section-katalog" class="space-y-6">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Katalog Produk</h2>
+          <p class="text-sm text-slate-500">Pilih produk untuk melihat detail atau melakukan pembelian.</p>
+        </div>
+        <div class="relative w-full sm:w-64">
+          <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+          <input type="text" id="katalog-search" oninput="renderKatalog()" placeholder="Cari nama produk..." class="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+      </div>
+
+      <!-- Grid Cards Produk -->
+      <div id="katalog-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <!-- Rendered by JS -->
+      </div>
+    </section>
+
+    <!-- TAB 2: KELOLA PRODUK (CRUD) -->
+    <section id="section-crud" class="hidden space-y-6">
+      <div class="flex justify-between items-center">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Kelola Inventaris Produk</h2>
+          <p class="text-sm text-slate-500">Tambah, ubah, atau hapus item dari katalog toko.</p>
+        </div>
+        <button onclick="openTambahModal()" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg shadow-sm transition-all flex items-center space-x-2">
+          <i class="fa-solid fa-plus"></i>
+          <span>Tambah Produk</span>
+        </button>
+      </div>
+
+      <!-- Tabel Produk -->
+      <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                <th class="py-3 px-4">ID</th>
+                <th class="py-3 px-4">Nama Produk</th>
+                <th class="py-3 px-4">Harga</th>
+                <th class="py-3 px-4">Stok</th>
+                <th class="py-3 px-4 text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="crud-table-body" class="divide-y divide-slate-200 text-sm">
+              <!-- Rendered by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: RIWAYAT TRANSAKSI -->
+    <section id="section-transaksi" class="hidden space-y-6">
+      <div class="flex justify-between items-center">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Riwayat Transaksi</h2>
+          <p class="text-sm text-slate-500">Daftar checkout yang berhasil tercatat di sistem.</p>
+        </div>
+        <button onclick="loadTransaksi()" class="text-slate-600 hover:text-slate-900 border border-slate-300 px-3 py-1.5 rounded-lg text-xs font-medium bg-white flex items-center space-x-1">
+          <i class="fa-solid fa-rotate"></i>
+          <span>Refresh</span>
+        </button>
+      </div>
+
+      <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                <th class="py-3 px-4">ID Transaksi</th>
+                <th class="py-3 px-4">Nama Produk</th>
+                <th class="py-3 px-4">Jumlah</th>
+                <th class="py-3 px-4">Total Harga</th>
+                <th class="py-3 px-4">Tanggal / Waktu</th>
+              </tr>
+            </thead>
+            <tbody id="transaksi-table-body" class="divide-y divide-slate-200 text-sm">
+              <!-- Rendered by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: Tambah / Edit Produk -->
+  <div id="modal-produk" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 transform transition-all">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-4 mb-4">
+        <h3 id="modal-produk-title" class="text-lg font-bold text-slate-900">Tambah Produk</h3>
+        <button onclick="closeModal('modal-produk')" class="text-slate-400 hover:text-slate-600 text-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <form id="form-produk" onsubmit="handleSaveProduk(event)" class="space-y-4">
+        <input type="hidden" id="form-produk-id">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Nama Produk</label>
+          <input type="text" id="form-nama" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="contoh: Kemeja Polos">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Harga (Rp)</label>
+          <input type="number" id="form-harga" min="0" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="75000">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Jumlah Stok</label>
+          <input type="number" id="form-stok" min="0" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="10">
+        </div>
+        <div class="flex justify-end space-x-3 pt-4 border-t border-slate-100">
+          <button type="button" onclick="closeModal('modal-produk')" class="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50">Batal</button>
+          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 shadow-sm">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Detail Produk -->
+  <div id="modal-detail" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-100">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3 mb-4">
+        <h3 class="text-lg font-bold text-slate-900">Detail Produk</h3>
+        <button onclick="closeModal('modal-detail')" class="text-slate-400 hover:text-slate-600 text-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div id="detail-content" class="space-y-3">
+        <!-- Rendered by JS -->
+      </div>
+      <div class="mt-6 flex justify-end">
+        <button onclick="closeModal('modal-detail')" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-200">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Beli / Checkout -->
+  <div id="modal-checkout" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3 mb-4">
+        <h3 class="text-lg font-bold text-slate-900">Simulasi Checkout</h3>
+        <button onclick="closeModal('modal-checkout')" class="text-slate-400 hover:text-slate-600 text-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <form id="form-checkout" onsubmit="handleCheckoutSubmit(event)" class="space-y-4">
+        <input type="hidden" id="checkout-produk-id">
+        <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+          <p id="checkout-nama-produk" class="font-bold text-slate-800 text-base"></p>
+          <p id="checkout-harga-satuan" class="text-xs text-slate-500 mt-0.5"></p>
+          <p id="checkout-stok-tersedia" class="text-xs text-slate-500"></p>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Jumlah Beli</label>
+          <input type="number" id="checkout-jumlah" min="1" value="1" required oninput="calculateTotalCheckout()" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        </div>
+        <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 flex justify-between items-center">
+          <span class="text-sm font-semibold text-blue-900">Total Harga:</span>
+          <span id="checkout-total-harga" class="text-xl font-extrabold text-blue-600">Rp0</span>
+        </div>
+        <div class="flex justify-end space-x-3 pt-4 border-t border-slate-100">
+          <button type="button" onclick="closeModal('modal-checkout')" class="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50">Batal</button>
+          <button type="submit" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700 shadow-sm flex items-center space-x-2">
+            <i class="fa-solid fa-bag-shopping"></i>
+            <span>Bayar Sekarang</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- SCRIPT LOGIKA JAVASCRIPT UTAMA -->
+  <script>
+    // Config state & Endpoints
+    let API_MODE = 'mock'; // Options: 'mock' | 'flask'
+    const FLASK_BASE_URL = window.location.origin.includes('http') ? window.location.origin : 'http://127.0.0.1:5000';
+
+    // Data bawaan untuk Mode Mock Data (LocalStorage)
+    const defaultProducts = [
+      { id: 1, nama: "Baju Kaos Premium", harga: 75000, stok: 15 },
+      { id: 2, nama: "Celana Jeans Slimfit", harga: 185000, stok: 8 },
+      { id: 3, nama: "Sepatu Sneaker Canvas", harga: 250000, stok: 5 },
+      { id: 4, nama: "Jaket Hoodie Fleece", harga: 135000, stok: 12 }
+    ];
+
+    // Inisialisasi Mock LocalStorage jika kosong
+    if (!localStorage.getItem('mock_produk')) {
+      localStorage.setItem('mock_produk', JSON.stringify(defaultProducts));
+    }
+    if (!localStorage.getItem('mock_transaksi')) {
+      localStorage.setItem('mock_transaksi', JSON.stringify([]));
+    }
+
+    let currentProdukList = [];
+    let activeCheckoutProduct = null;
+
+    // Load saat halaman pertama kali terbuka
+    window.onload = function() {
+      loadProduk();
+    };
+
+    // Helper: Format Angka ke Rupiah
+    function formatRupiah(val) {
+      return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
+    }
+
+    // Helper: Toast Notification
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      
+      const bgColor = type === 'success' ? 'bg-emerald-600' : type === 'error' ? 'bg-rose-600' : 'bg-blue-600';
+      const icon = type === 'success' ? 'fa-circle-check' : type === 'error' ? 'fa-circle-exclamation' : 'fa-circle-info';
+
+      toast.className = `${bgColor} text-white px-4 py-3 rounded-xl shadow-lg text-sm flex items-center space-x-3 pointer-events-auto transform transition-all duration-300 translate-y-2 opacity-0`;
+      toast.innerHTML = `<i class="fa-solid ${icon} text-lg"></i><span>${message}</span>`;
+      
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      }, 10);
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    // Tab Switcher
+    function switchTab(tab) {
+      const tabs = ['katalog', 'crud', 'transaksi'];
+      tabs.forEach(t => {
+        document.getElementById(`section-${t}`).classList.add('hidden');
+        document.getElementById(`tab-${t}`).classList.remove('active-tab');
+        document.getElementById(`tab-${t}`).classList.add('text-slate-500');
+      });
+
+      document.getElementById(`section-${tab}`).classList.remove('hidden');
+      document.getElementById(`tab-${tab}`).classList.add('active-tab');
+      document.getElementById(`tab-${tab}`).classList.remove('text-slate-500');
+
+      if (tab === 'katalog' || tab === 'crud') {
+        loadProduk();
+      } else if (tab === 'transaksi') {
+        loadTransaksi();
+      }
+    }
+
+    // Ganti Mode Data (Mock LocalStorage vs Flask API)
+    function setApiMode(mode) {
+      API_MODE = mode;
+      const btnMock = document.getElementById('btn-mode-mock');
+      const btnFlask = document.getElementById('btn-mode-flask');
+      const statusText = document.getElementById('status-text');
+      const urlBadge = document.getElementById('api-url-badge');
+
+      if (mode === 'mock') {
+        btnMock.className = "px-3 py-1.5 text-xs font-semibold rounded-lg transition-all shadow-sm bg-white text-blue-600";
+        btnFlask.className = "px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition-all";
+        statusText.innerHTML = "Menggunakan <b>LocalStorage (Mock Data)</b>. Perubahan disimpan secara lokal di browser.";
+        urlBadge.classList.add('hidden');
+        showToast("Beralih ke mode Mock Data / LocalStorage", "info");
+      } else {
+        btnFlask.className = "px-3 py-1.5 text-xs font-semibold rounded-lg transition-all shadow-sm bg-white text-blue-600";
+        btnMock.className = "px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition-all";
+        statusText.innerHTML = "Menghubungkan ke server Flask aktif di:";
+        urlBadge.innerText = FLASK_BASE_URL;
+        urlBadge.classList.remove('hidden');
+        showToast("Beralih ke mode API Flask Backend", "info");
+      }
+      loadProduk();
+    }
+
+    // Helper Modal
+    function openModal(id) {
+      document.getElementById(id).classList.remove('hidden');
+    }
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
+    }
+
+    // Fetch & Load Produk
+    async function loadProduk() {
+      if (API_MODE === 'mock') {
+        currentProdukList = JSON.parse(localStorage.getItem('mock_produk') || '[]');
+        renderKatalog();
+        renderCrudTable();
+      } else {
+        try {
+          const res = await fetch(`${FLASK_BASE_URL}/api/produk`);
+          if (!res.ok) throw new Error("Gagal mengambil data dari Flask");
+          currentProdukList = await res.json();
+          renderKatalog();
+          renderCrudTable();
+        } catch (err) {
+          showToast("Gagal mengambil data dari Flask: " + err.message, "error");
+          currentProdukList = [];
+          renderKatalog();
+          renderCrudTable();
+        }
+      }
+    }
+
+    // Render Tampilan Katalog Card
+    function renderKatalog() {
+      const grid = document.getElementById('katalog-grid');
+      const filterText = document.getElementById('katalog-search').value.toLowerCase();
+      
+      const filtered = currentProdukList.filter(p => p.nama.toLowerCase().includes(filterText));
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `<div class="col-span-full py-12 text-center text-slate-400">
+          <i class="fa-solid fa-box-open text-4xl mb-2"></i>
+          <p>Tidak ada produk ditemukan.</p>
+        </div>`;
+        return;
+      }
+
+      grid.innerHTML = filtered.map(p => `
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
+          <div>
+            <div class="w-full h-32 bg-slate-100 rounded-xl mb-4 flex items-center justify-center text-slate-300">
+              <i class="fa-solid fa-image text-3xl"></i>
+            </div>
+            <h3 class="font-bold text-slate-800 text-base mb-1 line-clamp-1">${p.nama}</h3>
+            <p class="text-blue-600 font-extrabold text-lg mb-2">${formatRupiah(p.harga)}</p>
+            <span class="inline-block text-xs px-2.5 py-1 rounded-full font-medium ${p.stok > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}">
+              Stok: ${p.stok}
+            </span>
+          </div>
+          <div class="mt-5 grid grid-cols-2 gap-2">
+            <button onclick="viewDetail(${p.id})" class="w-full py-2 border border-slate-200 text-slate-600 rounded-lg text-xs font-semibold hover:bg-slate-50 transition-all">
+              Detail
+            </button>
+            <button onclick="openCheckoutModal(${p.id})" ${p.stok <= 0 ? 'disabled' : ''} class="w-full py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-lg text-xs font-semibold shadow-sm transition-all flex items-center justify-center space-x-1">
+              <i class="fa-solid fa-cart-shopping text-xs"></i>
+              <span>Beli</span>
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Render Tampilan Tabel CRUD Admin
+    function renderCrudTable() {
+      const tbody = document.getElementById('crud-table-body');
+      
+      if (currentProdukList.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="py-8 text-center text-slate-400">Belum ada data produk</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = currentProdukList.map(p => `
+        <tr class="hover:bg-slate-50/80 transition-colors">
+          <td class="py-3 px-4 font-mono text-xs text-slate-400">#${p.id}</td>
+          <td class="py-3 px-4 font-semibold text-slate-800">${p.nama}</td>
+          <td class="py-3 px-4 font-medium text-slate-700">${formatRupiah(p.harga)}</td>
+          <td class="py-3 px-4">
+            <span class="px-2 py-1 text-xs rounded-md ${p.stok > 0 ? 'bg-slate-100 text-slate-700' : 'bg-rose-100 text-rose-700 font-bold'}">
+              ${p.stok}
+            </span>
+          </td>
+          <td class="py-3 px-4 text-right space-x-2">
+            <button onclick="openEditModal(${p.id})" class="text-blue-600 hover:text-blue-800 text-xs font-semibold px-2 py-1 rounded bg-blue-50">
+              <i class="fa-solid fa-pen-to-square"></i> Edit
+            </button>
+            <button onclick="handleDeleteProduk(${p.id})" class="text-rose-600 hover:text-rose-800 text-xs font-semibold px-2 py-1 rounded bg-rose-50">
+              <i class="fa-solid fa-trash"></i> Hapus
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // Open Modal Tambah
+    function openTambahModal() {
+      document.getElementById('modal-produk-title').innerText = 'Tambah Produk';
+      document.getElementById('form-produk-id').value = '';
+      document.getElementById('form-nama').value = '';
+      document.getElementById('form-harga').value = '';
+      document.getElementById('form-stok').value = '';
+      openModal('modal-produk');
+    }
+
+    // Open Modal Edit
+    function openEditModal(id) {
+      const p = currentProdukList.find(item => item.id === id);
+      if (!p) return;
+
+      document.getElementById('modal-produk-title').innerText = 'Edit Produk';
+      document.getElementById('form-produk-id').value = p.id;
+      document.getElementById('form-nama').value = p.nama;
+      document.getElementById('form-harga').value = p.harga;
+      document.getElementById('form-stok').value = p.stok;
+      openModal('modal-produk');
+    }
+
+    // Submit Handler: Tambah / Edit Produk (POST / PUT)
+    async function handleSaveProduk(e) {
+      e.preventDefault();
+      const id = document.getElementById('form-produk-id').value;
+      const nama = document.getElementById('form-nama').value;
+      const harga = parseFloat(document.getElementById('form-harga').value);
+      const stok = parseInt(document.getElementById('form-stok').value);
+
+      if (API_MODE === 'mock') {
+        let produkArr = JSON.parse(localStorage.getItem('mock_produk') || '[]');
+        if (id) {
+          produkArr = produkArr.map(p => p.id == id ? { ...p, nama, harga, stok } : p);
+          showToast("Produk berhasil diperbarui!");
+        } else {
+          const newId = produkArr.length > 0 ? Math.max(...produkArr.map(p => p.id)) + 1 : 1;
+          produkArr.push({ id: newId, nama, harga, stok });
+          showToast("Produk berhasil ditambahkan!");
+        }
+        localStorage.setItem('mock_produk', JSON.stringify(produkArr));
+        closeModal('modal-produk');
+        loadProduk();
+      } else {
+        // Mode Flask API
+        try {
+          const url = id ? `${FLASK_BASE_URL}/api/produk/detail?id=${id}` : `${FLASK_BASE_URL}/api/produk`;
+          const method = id ? 'PUT' : 'POST';
+
+          const res = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nama, harga, stok })
+          });
+          
+          const data = await res.json();
+          if (res.ok) {
+            showToast(data.message || "Berhasil menyimpan produk!");
+            closeModal('modal-produk');
+            loadProduk();
+          } else {
+            showToast(data.error || "Gagal menyimpan produk", "error");
+          }
+        } catch (err) {
+          showToast("Error terhubung ke Flask: " + err.message, "error");
+        }
+      }
+    }
+
+    // Delete Handler: Hapus Produk (DELETE)
+    async function handleDeleteProduk(id) {
+      if (!confirm("Apakah Anda yakin ingin menghapus produk ini?")) return;
+
+      if (API_MODE === 'mock') {
+        let produkArr = JSON.parse(localStorage.getItem('mock_produk') || '[]');
+        produkArr = produkArr.filter(p => p.id !== id);
+        localStorage.setItem('mock_produk', JSON.stringify(produkArr));
+        showToast("Produk berhasil dihapus!");
+        loadProduk();
+      } else {
+        // Mode Flask API
+        try {
+          const res = await fetch(`${FLASK_BASE_URL}/api/produk/detail?id=${id}`, {
+            method: 'DELETE'
+          });
+          const data = await res.json();
+
+          if (res.ok) {
+            showToast(data.message || "Produk berhasil dihapus!");
+            loadProduk();
+          } else {
+            showToast(data.error || "Gagal menghapus produk", "error");
+          }
+        } catch (err) {
+          showToast("Error terhubung ke Flask: " + err.message, "error");
+        }
+      }
+    }
+
+    // Detail Produk Modal View
+    async function viewDetail(id) {
+      let produk = null;
+      if (API_MODE === 'mock') {
+        produk = currentProdukList.find(p => p.id === id);
+      } else {
+        try {
+          const res = await fetch(`${FLASK_BASE_URL}/api/produk/detail?id=${id}`);
+          if (res.ok) produk = await res.json();
+        } catch (err) {
+          showToast("Gagal mengambil detail produk", "error");
+        }
+      }
+
+      if (!produk) {
+        showToast("Detail produk tidak ditemukan", "error");
+        return;
+      }
+
+      document.getElementById('detail-content').innerHTML = `
+        <div class="space-y-2 text-sm">
+          <div><span class="text-xs text-slate-400 block uppercase">ID Produk</span><span class="font-mono font-medium">#${produk.id}</span></div>
+          <div><span class="text-xs text-slate-400 block uppercase">Nama Produk</span><span class="font-bold text-slate-800 text-base">${produk.nama}</span></div>
+          <div><span class="text-xs text-slate-400 block uppercase">Harga</span><span class="font-bold text-blue-600 text-lg">${formatRupiah(produk.harga)}</span></div>
+          <div><span class="text-xs text-slate-400 block uppercase">Stok Tersedia</span><span class="font-semibold text-slate-700">${produk.stok} unit</span></div>
+        </div>
+      `;
+      openModal('modal-detail');
+    }
+
+    // Checkout Modal Setup
+    function openCheckoutModal(id) {
+      const p = currentProdukList.find(item => item.id === id);
+      if (!p) return;
+
+      activeCheckoutProduct = p;
+      document.getElementById('checkout-produk-id').value = p.id;
+      document.getElementById('checkout-nama-produk').innerText = p.nama;
+      document.getElementById('checkout-harga-satuan').innerText = `Harga satuan: ${formatRupiah(p.harga)}`;
+      document.getElementById('checkout-stok-tersedia').innerText = `Stok tersedia: ${p.stok}`;
+      
+      const inputJumlah = document.getElementById('checkout-jumlah');
+      inputJumlah.value = 1;
+      inputJumlah.max = p.stok;
+
+      calculateTotalCheckout();
+      openModal('modal-checkout');
+    }
+
+    function calculateTotalCheckout() {
+      if (!activeCheckoutProduct) return;
+      const jumlah = parseInt(document.getElementById('checkout-jumlah').value) || 0;
+      const total = activeCheckoutProduct.harga * jumlah;
+      document.getElementById('checkout-total-harga').innerText = formatRupiah(total);
+    }
+
+    // Submit Checkout (POST Transaction)
+    async function handleCheckoutSubmit(e) {
+      e.preventDefault();
+      const produkId = parseInt(document.getElementById('checkout-produk-id').value);
+      const jumlah = parseInt(document.getElementById('checkout-jumlah').value);
+
+      if (API_MODE === 'mock') {
+        let produkArr = JSON.parse(localStorage.getItem('mock_produk') || '[]');
+        let transaksiArr = JSON.parse(localStorage.getItem('mock_transaksi') || '[]');
+
+        const idx = produkArr.findIndex(p => p.id === produkId);
+        if (idx === -1) {
+          showToast("Produk tidak ditemukan", "error");
+          return;
+        }
+
+        if (produkArr[idx].stok < jumlah) {
+          showToast("Stok tidak mencukupi!", "error");
+          return;
+        }
+
+        produkArr[idx].stok -= jumlah;
+        const total_harga = produkArr[idx].harga * jumlah;
+
+        const newTxId = transaksiArr.length > 0 ? Math.max(...transaksiArr.map(t => t.id)) + 1 : 1;
+        transaksiArr.unshift({
+          id: newTxId,
+          produk_id: produkId,
+          nama_produk: produkArr[idx].nama,
+          jumlah: jumlah,
+          total_harga: total_harga,
+          tanggal: new Date().toLocaleString('id-ID')
+        });
+
+        localStorage.setItem('mock_produk', JSON.stringify(produkArr));
+        localStorage.setItem('mock_transaksi', JSON.stringify(transaksiArr));
+
+        showToast("Transaksi berhasil dibuat!");
+        closeModal('modal-checkout');
+        loadProduk();
+      } else {
+        // Mode Flask API
+        try {
+          const res = await fetch(`${FLASK_BASE_URL}/api/transaksi`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ produk_id: produkId, jumlah: jumlah })
+          });
+
+          const data = await res.json();
+          if (res.ok) {
+            showToast(`Transaksi Sukses! ID: ${data.transaksi_id}`);
+            closeModal('modal-checkout');
+            loadProduk();
+          } else {
+            showToast(data.error || "Transaksi gagal", "error");
+          }
+        } catch (err) {
+          showToast("Error terhubung ke Flask: " + err.message, "error");
+        }
+      }
+    }
+
+    // Load Riwayat Transaksi (GET)
+    async function loadTransaksi() {
+      if (API_MODE === 'mock') {
+        const txList = JSON.parse(localStorage.getItem('mock_transaksi') || '[]');
+        renderTransaksiTable(txList);
+      } else {
+        try {
+          const res = await fetch(`${FLASK_BASE_URL}/api/transaksi`);
+          if (!res.ok) throw new Error("Gagal terhubung ke API");
+          const txList = await res.json();
+          renderTransaksiTable(txList);
+        } catch (err) {
+          showToast("Gagal mengambil riwayat transaksi dari Flask", "error");
+          renderTransaksiTable([]);
+        }
+      }
+    }
+
+    // Render Tabel Transaksi
+    function renderTransaksiTable(list) {
+      const tbody = document.getElementById('transaksi-table-body');
+
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="py-8 text-center text-slate-400">Belum ada riwayat transaksi</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = list.map(t => `
+        <tr class="hover:bg-slate-50/80 transition-colors">
+          <td class="py-3 px-4 font-mono text-xs text-slate-400">#TRX-${t.id}</td>
+          <td class="py-3 px-4 font-semibold text-slate-800">${t.nama_produk || 'Produk #' + t.produk_id}</td>
+          <td class="py-3 px-4 font-medium text-slate-700">${t.jumlah} item</td>
+          <td class="py-3 px-4 font-bold text-emerald-600">${formatRupiah(t.total_harga)}</td>
+          <td class="py-3 px-4 text-xs text-slate-500">${t.tanggal || '-'}</td>
+        </tr>
+      `).join('');
+    }
+  </script>
+</body>
+</html>
